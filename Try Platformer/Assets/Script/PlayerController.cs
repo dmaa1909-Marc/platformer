@@ -7,12 +7,14 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] Transform playerCamera = null;
     [SerializeField] float mouseSensitivity = 3.5f;
     [SerializeField] float walkSpeed = 6.0f;
+    [SerializeField] float gravity = -13.0f;
     [SerializeField] float moveSmoothTime = 0.15f;
     [SerializeField] float mouseSmoothTime = 0.03f;
 
     [SerializeField] bool lockCursor = true;
 
     private float cameraPitch = 0.0f;
+    private float velocityY = 0.0f;
     private CharacterController controller = null;
 
     private Vector2 currentDir = Vector2.zero;
@@ -43,6 +45,7 @@ public class PlayerController : MonoBehaviour{
         //Returns the axis of the mouse placement
         Vector2 targetMouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
+        //Smoothing mouselook method.
         currentMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, mouseSmoothTime);
 
         //Inverts the camera axis value (unity camera is defaulted to "look upwards" with a negative value)
@@ -67,11 +70,23 @@ public class PlayerController : MonoBehaviour{
         //Ensures the value when moving diagonally also is 1, to ease implementation of a movement speed and make it so the speed dosen't increase when moving sideways.
         targetDir.Normalize();
 
+        //Smoothing movement method.
         currentDir = Vector2.SmoothDamp(currentDir, targetDir, ref currentDirVelocity, moveSmoothTime);
 
-        //Stores the value of which movementkeys are pressed.
-        Vector3 velocity = (transform.forward * currentDir.y + transform.right * currentDir.x) * walkSpeed;
+        //Checks the player is grounded if he is nothing is applied if he isn't he's affected by the gravity value.
+        if (controller.isGrounded) {
+            velocityY = 0.0f;
+        }
+        else {
+            velocityY += gravity * Time.deltaTime;
+        }
+
+        //Stores the value of which movementkeys are pressed and applies gravity.
+        //Vector3.up is applied instead of Vector3.down, since the velocityY is a negative value. Otherwise the player would shoot into the sky.
+        Vector3 velocity = (transform.forward * currentDir.y + transform.right * currentDir.x) * walkSpeed + Vector3.up * velocityY;
 
         controller.Move(velocity * Time.deltaTime);
+
+
     }
 }
