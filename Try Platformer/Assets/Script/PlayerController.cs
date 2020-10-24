@@ -7,12 +7,18 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] Transform playerCamera = null;
     [SerializeField] float mouseSensitivity = 3.5f;
     [SerializeField] float walkSpeed = 6.0f;
+    [SerializeField] float moveSmoothTime = 0.15f;
+    [SerializeField] float mouseSmoothTime = 0.03f;
 
     [SerializeField] bool lockCursor = true;
 
     private float cameraPitch = 0.0f;
     private CharacterController controller = null;
 
+    private Vector2 currentDir = Vector2.zero;
+    private Vector2 currentDirVelocity = Vector2.zero;
+    private Vector2 currentMouseDelta = Vector2.zero;
+    private Vector2 currentMouseDeltaVelocity = Vector2.zero;
     // Start is called before the first frame update
     void Start(){
 
@@ -35,10 +41,12 @@ public class PlayerController : MonoBehaviour{
 
     private void MouseLookUpdate() {
         //Returns the axis of the mouse placement
-        Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+        Vector2 targetMouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+
+        currentMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, mouseSmoothTime);
 
         //Inverts the camera axis value (unity camera is defaulted to "look upwards" with a negative value)
-        cameraPitch -= mouseDelta.y * mouseSensitivity;
+        cameraPitch -= currentMouseDelta.y * mouseSensitivity;
 
         //Clamps the axis of the camera (meaning to lock it in place) if the min/max axis value is recieved.
         //Makes it so the camera cant rotate more than 90 degrees up or down.
@@ -48,19 +56,21 @@ public class PlayerController : MonoBehaviour{
         playerCamera.localEulerAngles = Vector3.right * cameraPitch;
 
         //Rotates the player left and right, based on mouse x position
-        transform.Rotate(Vector3.up * mouseDelta.x * mouseSensitivity);
+        transform.Rotate(Vector3.up * currentMouseDelta.x * mouseSensitivity);
 
     }
 
     private void MovementUpdate() {
-        //Returns the input of a movement-keypress
-        Vector2 inputDir = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        //Stores the input of a movement-keypress
+        Vector2 targetDir = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
         //Ensures the value when moving diagonally also is 1, to ease implementation of a movement speed and make it so the speed dosen't increase when moving sideways.
-        inputDir.Normalize();
+        targetDir.Normalize();
 
-        //Moves the player object based on the value of which movementkeys are pressed.
-        Vector3 velocity = (transform.forward * inputDir.y + transform.right * inputDir.x) * walkSpeed;
+        currentDir = Vector2.SmoothDamp(currentDir, targetDir, ref currentDirVelocity, moveSmoothTime);
+
+        //Stores the value of which movementkeys are pressed.
+        Vector3 velocity = (transform.forward * currentDir.y + transform.right * currentDir.x) * walkSpeed;
 
         controller.Move(velocity * Time.deltaTime);
     }
