@@ -10,9 +10,14 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] float gravity = -13.0f;
     [SerializeField] float moveSmoothTime = 0.15f;
     [SerializeField] float mouseSmoothTime = 0.03f;
+    [SerializeField] float jumpHeight = 1.0f;
 
     [SerializeField] bool lockCursor = true;
 
+    [SerializeField] LayerMask groundLayer;
+    [SerializeField] Transform isGroundedTransform;
+
+    private bool isGrounded;
     private float cameraPitch = 0.0f;
     private float velocityY = 0.0f;
     private CharacterController controller = null;
@@ -38,6 +43,7 @@ public class PlayerController : MonoBehaviour{
     void Update(){
         MouseLookUpdate();
         MovementUpdate();
+        CheckIfGrounded();
     }
 
 
@@ -73,7 +79,7 @@ public class PlayerController : MonoBehaviour{
         //Smoothing movement method.
         currentDir = Vector2.SmoothDamp(currentDir, targetDir, ref currentDirVelocity, moveSmoothTime);
 
-        //Checks the player is grounded if he is nothing is applied if he isn't he's affected by the gravity value.
+        //If the player is grounded nothing is applied, if not then the player is affected by the gravity value.
         if (controller.isGrounded) {
             velocityY = 0.0f;
         }
@@ -81,12 +87,29 @@ public class PlayerController : MonoBehaviour{
             velocityY += gravity * Time.deltaTime;
         }
 
+        //Jumping
+        if (isGrounded && Input.GetButtonDown("Jump")) {
+            Debug.Log("Jumpbutton pressed");
+            velocityY += Mathf.Sqrt(jumpHeight * -3.0f * gravity);
+        }
+
         //Stores the value of which movementkeys are pressed and applies gravity.
         //Vector3.up is applied instead of Vector3.down, since the velocityY is a negative value. Otherwise the player would shoot into the sky.
         Vector3 velocity = (transform.forward * currentDir.y + transform.right * currentDir.x) * walkSpeed + Vector3.up * velocityY;
 
         controller.Move(velocity * Time.deltaTime);
-
-
     }
+
+    //Checks if the isGroundedTransforms position is colliding with the ground layer.
+    //Overlapsphere returns an array and if the transform is colliding with the ground layer, the array has a size of 1.
+    private void CheckIfGrounded(){
+        if(Physics.OverlapSphere(isGroundedTransform.position, 0.1f, groundLayer).Length == 1) {
+            isGrounded = true;
+        }
+        else {
+            isGrounded = false;
+        }
+    }
+
+
 }
